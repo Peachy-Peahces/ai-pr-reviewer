@@ -1,7 +1,7 @@
 fastapi==0.115.0
 uvicorn==0.32.0
-pygithub==2.5.0
-openai==1.55.0
+# pygithub 不再需要（改用 requests 直接调用 GitHub REST API）
+# openai 也不需要（直接用 requests 调用 DeepSeek API）
 unidiff==0.7.5
 streamlit==1.39.0
 pydantic==2.9.2

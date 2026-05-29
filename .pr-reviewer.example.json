@@ -1,0 +1,39 @@
+{
+  "rules": {
+    "security": {
+      "enabled": true,
+      "description": "安全检查：硬编码密钥、SQL注入、XSS、输入验证"
+    },
+    "correctness": {
+      "enabled": true,
+      "description": "逻辑正确性：边界条件、空指针、类型错误、异常处理"
+    },
+    "performance": {
+      "enabled": true,
+      "description": "性能：算法复杂度、内存泄漏、不必要的循环、N+1查询"
+    },
+    "code_quality": {
+      "enabled": true,
+      "description": "代码质量：命名规范、函数长度、嵌套深度、重复代码"
+    },
+    "best_practices": {
+      "enabled": true,
+      "description": "最佳实践：设计模式、SOLID原则、框架惯例"
+    }
+  },
+  "custom_rules": [
+    {
+      "name": "禁止 print() 调试",
+      "description": "生产代码不应使用 print() 进行调试输出，应使用 logging 模块",
+      "severity": "warning"
+    }
+  ],
+  "ignore_patterns": [
+    "*.md",
+    "*.txt",
+    "*.json",
+    "*.lock",
+    "vendor/*",
+    "node_modules/*"
+  ]
+}

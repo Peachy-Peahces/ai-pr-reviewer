@@ -1,6 +1,11 @@
 """测试 GitHub Client - 获取真实 PR 的 diff"""
 from src.core.github_client import GitHubClient
 
+## 输出乱码
+import sys, io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+
 # 使用真实存在的公开 PR
 TEST_PR_URL = "https://github.com/microsoft/vscode/pull/7559"
 

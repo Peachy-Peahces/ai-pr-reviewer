@@ -36,6 +36,8 @@ ENV/
 # Environment variables
 .env
 .config.json
+config.json
+.pr-reviewer.json
 
 # OS
 Thumbs.db
