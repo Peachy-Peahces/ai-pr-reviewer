@@ -159,8 +159,9 @@ def run_review(diff_text, pr_info):
         st.error("❌ 未解析到任何文件改动")
         return False
     
+    st.session_state.diff_parser = parser  # 保存供后续行号定位使用
+
     reviewer = AIReviewer()
-    # 防御：Streamlit 会关闭 sys.stdout，而 requests/urllib3 内部可能写 stdout
     old_stdout = sys.stdout
     try:
         sys.stdout = open(os.devnull, 'w')
@@ -183,6 +184,7 @@ if demo_btn:
         # 解析 diff
         parser = DiffParser(SAMPLE_DIFF)
         file_diffs = parser.parse()
+        st.session_state.diff_parser = parser
         st.write(f"变更文件: {len(file_diffs)} 个")
         for fd in file_diffs:
             st.write(f"- `{fd.filename}` ({fd.status}, +{fd.additions}/-{fd.deletions})")
@@ -273,11 +275,25 @@ if st.session_state.reviewed and st.session_state.report:
             for issue in report.issues:
                 icon = severity_icons.get(issue.severity, "❓")
                 with st.expander(f"{icon} [{issue.severity.upper()}] {issue.title}"):
-                    st.write(f"**文件**: `{issue.file_path}`" + 
+                    st.write(f"**文件**: `{issue.file_path}`" +
                             (f" (行 {issue.line_number})" if issue.line_number else ""))
                     st.write(f"**规则**: {issue.rule_id}")
                     st.write(f"**描述**: {issue.description}")
                     st.write(f"**建议**: {issue.suggestion}")
+
+                    # 行级代码上下文
+                    if issue.line_number:
+                        parser = st.session_state.get('diff_parser')
+                        if parser:
+                            ctx = parser.get_line_context(issue.file_path, issue.line_number)
+                            if ctx:
+                                st.markdown("---")
+                                st.caption(f"📍 `{ctx['filename']}:{ctx['target_line']}`")
+                                code_lines = []
+                                for ln, code in ctx['lines']:
+                                    marker = '▶' if ln == ctx['target_line'] else ' '
+                                    code_lines.append(f"{ln:4d} {marker} {code}")
+                                st.code('\n'.join(code_lines), language=None)
         else:
             st.success("🎉 没有发现问题！代码质量很好。")
     

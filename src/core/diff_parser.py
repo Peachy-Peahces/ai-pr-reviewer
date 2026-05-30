@@ -7,6 +7,7 @@ diff_parser.py - 解析 PR diff，拆分成结构化数据
 3. 返回结构化数据供 AI reviewer 使用
 """
 
+import os
 import re
 from typing import List, Dict, Optional
 from dataclasses import dataclass
@@ -186,6 +187,51 @@ class DiffParser:
         
         return additions, deletions
     
+    def get_line_context(self, filename: str, line_number: int, context_lines: int = 3):
+        """
+        提取指定文件某个行号的前后代码上下文
+
+        Returns:
+            dict 或 None
+        """
+        for fd in self.file_diffs:
+            if self._match_filename(fd, filename):
+                return self._extract_context(fd.diff_content, line_number, context_lines, fd.filename)
+        return None
+
+    @staticmethod
+    def _match_filename(file_diff, target: str) -> bool:
+        candidates = {file_diff.filename, file_diff.new_path, file_diff.old_path}
+        for c in candidates:
+            if c == target or c == f"b/{target}" or c == f"a/{target}":
+                return True
+        basenames = {os.path.basename(p) for p in candidates if p}
+        return os.path.basename(target) in basenames
+
+    @staticmethod
+    def _extract_context(diff_content: str, target_line: int, context_lines: int, filename: str):
+        line_map = {}
+        for line in diff_content.split('\n'):
+            m = re.match(r'^\s*(\d+):\s(.*)', line)
+            if m:
+                line_map[int(m.group(1))] = m.group(2)
+
+        if target_line not in line_map:
+            return None
+
+        all_nos = sorted(line_map.keys())
+        idx = all_nos.index(target_line)
+        start = max(0, idx - context_lines)
+        end = min(len(all_nos), idx + context_lines + 1)
+
+        context_nos = all_nos[start:end]
+        return {
+            "filename": filename,
+            "target_line": target_line,
+            "lines": [(ln, line_map[ln]) for ln in context_nos],
+            "target_index": context_nos.index(target_line),
+        }
+
     def get_summary(self) -> Dict:
         """
         获取整个 diff 的摘要信息
