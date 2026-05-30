@@ -166,6 +166,8 @@ def run_review(diff_text, pr_info):
     try:
         sys.stdout = open(os.devnull, 'w')
         report = reviewer.review(file_diffs, pr_info)
+        if getattr(reviewer, 'last_chunk_count', 1) > 1:
+            st.info(f"📦 PR 较大，已自动拆分为 {reviewer.last_chunk_count} 批独立审查")
     except Exception as e:
         st.error(f"❌ AI 审查失败: {e}")
         return False

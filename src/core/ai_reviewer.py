@@ -193,27 +193,78 @@ diff 中每行前面的数字（如 " 10: "）是新文件的行号。请在 iss
         
         return full_prompt
     
+    CHUNK_CHAR_LIMIT = 8000  # 单批次最大字符数
+
     def review(self, file_diffs: List, pr_info: Dict = None) -> ReviewReport:
-        """
-        执行代码审查（主入口）
-        
-        Args:
-            file_diffs: FileDiff 列表（来自 diff_parser）
-            pr_info: PR 信息（来自 github_client）
-            
-        Returns:
-            ReviewReport 完整报告
-        """
-        # 1. 构建 prompt
+        """执行代码审查（主入口），大 PR 自动分批处理。"""
+        total_chars = sum(len(fd.diff_content) for fd in file_diffs)
+
+        if total_chars <= self.CHUNK_CHAR_LIMIT or len(file_diffs) <= 1:
+            self.last_chunk_count = 1
+            return self._review_single(file_diffs, pr_info)
+
+        chunks = self._chunk_file_diffs(file_diffs)
+        self.last_chunk_count = len(chunks)
+        return self._review_chunked(chunks, pr_info)
+
+    def _review_single(self, file_diffs: List, pr_info: Dict = None) -> ReviewReport:
+        """单批次审查（原始流程）"""
         prompt = self.build_prompt(file_diffs, pr_info)
-
-        # 2. 调用 API
         raw_response = self._call_api(prompt)
+        return self._parse_response(raw_response)
 
-        # 3. 解析响应
-        report = self._parse_response(raw_response)
-        
-        return report
+    def _chunk_file_diffs(self, file_diffs: List, max_chars: int = None) -> List[List]:
+        """按文件边界拆分，确保单批次不超过字符限制。"""
+        max_chars = max_chars or self.CHUNK_CHAR_LIMIT
+        chunks = []
+        current = []
+        current_size = 0
+
+        for fd in file_diffs:
+            fd_size = len(fd.diff_content)
+            if current and current_size + fd_size > max_chars:
+                chunks.append(current)
+                current = []
+                current_size = 0
+            current.append(fd)
+            current_size += fd_size
+
+        if current:
+            chunks.append(current)
+        return chunks
+
+    def _review_chunked(self, chunks: List[List], pr_info: Dict = None) -> ReviewReport:
+        """分批调用 AI 审查，合并结果。"""
+        reports = []
+        for i, chunk in enumerate(chunks, 1):
+            prompt = self.build_prompt(chunk, pr_info)
+            prompt += f"\n\n[第 {i}/{len(chunks)} 批 — 请仅审查本批文件]"
+            raw = self._call_api(prompt)
+            reports.append(self._parse_response(raw))
+        return self._merge_reports(reports, pr_info)
+
+    @staticmethod
+    def _merge_reports(reports: List, pr_info: Dict = None) -> ReviewReport:
+        """合并多个 ReviewReport 为一个。"""
+        all_issues = []
+        for r in reports:
+            all_issues.extend(r.issues)
+
+        strengths = list(dict.fromkeys(s for r in reports for s in r.strengths))
+        suggestions = list(dict.fromkeys(s for r in reports for s in r.suggestions))
+        avg_score = round(sum(r.overall_score for r in reports) / max(len(reports), 1))
+
+        critical = sum(1 for i in all_issues if i.severity == "critical")
+        warnings = sum(1 for i in all_issues if i.severity == "warning")
+
+        return ReviewReport(
+            summary=f"分 {len(reports)} 批审查完成，发现 {len(all_issues)} 个问题"
+                    f"（{critical} 个严重, {warnings} 个警告），综合评分 {avg_score}/10。",
+            overall_score=avg_score,
+            issues=all_issues,
+            strengths=strengths[:5],
+            suggestions=suggestions[:5],
+        )
     
     def _call_api(self, prompt: str, model: str = "deepseek-v4-flash") -> str:
         """
