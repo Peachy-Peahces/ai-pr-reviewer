@@ -12,6 +12,7 @@ import streamlit as st
 from src.core.github_client import GitHubClient
 from src.core.diff_parser import DiffParser
 from src.core.ai_reviewer import AIReviewer
+from src.core.export_report import report_to_markdown, report_to_html
 
 
 # ========== 页面配置 ==========
@@ -322,6 +323,30 @@ if st.session_state.reviewed and st.session_state.report:
     # 统计
     st.divider()
     st.caption(f"共发现 {len(report.issues)} 个问题 | AI 模型: deepseek-v4-flash | Powered by DeepSeek")
+
+    # ====== 导出报告 ======
+    st.subheader("📥 导出报告")
+    pr_info_export = {"title": st.session_state.get("pr_url", ""), "author": ""}
+    md_text = report_to_markdown(report, pr_info_export if st.session_state.get("pr_url") else None)
+    html_text = report_to_html(report, pr_info_export if st.session_state.get("pr_url") else None)
+
+    col_md, col_html, _ = st.columns([1, 1, 3])
+    with col_md:
+        st.download_button(
+            label="📝 下载 Markdown",
+            data=md_text,
+            file_name="code-review-report.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+    with col_html:
+        st.download_button(
+            label="🌐 下载 HTML（可打印 PDF）",
+            data=html_text,
+            file_name="code-review-report.html",
+            mime="text/html",
+            use_container_width=True,
+        )
 
     # ====== 发布到 PR ======
     st.divider()
