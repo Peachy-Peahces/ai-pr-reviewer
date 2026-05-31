@@ -27,6 +27,57 @@ if 'report' not in st.session_state:
     st.session_state.report = None
 if 'reviewed' not in st.session_state:
     st.session_state.reviewed = False
+if 'theme' not in st.session_state:
+    st.session_state.theme = 'dark'
+
+# ========== 主题 CSS 注入 ==========
+def inject_theme():
+    t = st.session_state.theme
+    bg = '#0e1117' if t == 'dark' else '#ffffff'
+    bg2 = '#1c1f26' if t == 'dark' else '#f0f2f6'
+    text = '#e6e6e6' if t == 'dark' else '#262730'
+    accent = '#4da3ff' if t == 'dark' else '#1f77d0'
+    border = '#2e323b' if t == 'dark' else '#d0d5dd'
+
+    st.markdown(f"""<style>
+    .stApp {{ background-color: {bg}; }}
+    .score-badge {{
+        display: inline-block;
+        width: 64px; height: 64px;
+        line-height: 64px;
+        text-align: center;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 26px;
+        color: #fff;
+    }}
+    .score-high {{ background: #2ea043; }}
+    .score-mid {{ background: #d29922; }}
+    .score-low {{ background: #f85149; }}
+    .theme-toggle {{
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 18px;
+        cursor: pointer;
+        border: 1px solid {border};
+        background: {bg2};
+    }}
+    hr {{ border-color: {border}; }}
+    .stExpander {{
+        border: 1px solid {border};
+        border-radius: 8px;
+    }}
+    .stButton > button {{
+        border-radius: 8px;
+        transition: all 0.2s;
+    }}
+    .stButton > button:hover {{
+        border-color: {accent};
+    }}
+    </style>""", unsafe_allow_html=True)
+
+inject_theme()
 
 
 # ========== 标题 ==========
@@ -255,11 +306,14 @@ if st.session_state.reviewed and st.session_state.report:
     
     # 总评分
     score = report.overall_score
-    score_color = "green" if score >= 7 else ("orange" if score >= 5 else "red")
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown(f"## 总体评分: :{score_color}[{score}/10]")
+    score_cls = "score-high" if score >= 7 else ("score-mid" if score >= 5 else "score-low")
+
+    st.markdown(f"""
+    <div style="text-align:center;margin:16px 0;">
+        <span class="score-badge {score_cls}">{score}</span>
+        <span style="font-size:18px;font-weight:600;margin-left:12px;vertical-align:middle;">/ 10</span>
+    </div>
+    """, unsafe_allow_html=True)
     
     st.markdown(f"**📝 总体评价:**\n\n{report.summary}")
     
@@ -376,3 +430,15 @@ if st.session_state.reviewed and st.session_state.report:
                         st.success(f"✅ 审查已发布！[查看]({review_url})")
                     else:
                         st.error("❌ 发布失败，请检查 Token 权限和网络（api.github.com 可能需要代理）")
+
+# ========== 侧栏 ==========
+with st.sidebar:
+    st.subheader("🎨 外观")
+    dark = st.session_state.theme == 'dark'
+    if st.button(f"{'🌙 深色模式' if dark else '☀️ 浅色模式'}", key="toggle_theme", use_container_width=True):
+        st.session_state.theme = 'light' if dark else 'dark'
+        st.rerun()
+    st.caption("一键切换深色/浅色主题")
+
+    st.divider()
+    st.caption("Powered by DeepSeek | AI PR Reviewer v1.0")
