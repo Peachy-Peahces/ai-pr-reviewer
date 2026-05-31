@@ -10,7 +10,7 @@
 ## ✨ 功能特性
 
 - 🔍 **智能代码审查**：基于 DeepSeek 多维度分析 PR 代码变更
-- ⚡🎯 **多模型切换**：支持 DeepSeek V4 Flash（快速）与 V3 Pro（高精度）一键切换
+- ⚡🎯 **多模型切换**：支持 DeepSeek V4 Flash（快速）与 V4 Pro（高精度）一键切换
 - 📍 **行级精准定位**：问题精确标注到代码行，附上下文展示（▶ 标记目标行）
 - 📝 **自定义审查规则**：`.pr-reviewer.json` 自定义审查维度、忽略模式、自定义规则
 - 📦 **大 PR 自动分块**：Diff 超长时按文件边界自动拆分，结果智能合并去重
@@ -24,7 +24,7 @@
 
 - **后端**：Python + FastAPI
 - **前端**：Streamlit
-- **AI 模型**：DeepSeek V4 Flash（默认）/ V3 Pro（高精度可切换）
+- **AI 模型**：DeepSeek V4 Flash（默认）/ V4 Pro（高精度可切换）
 - **GitHub API**：requests（原生 REST API，支持代理）
 
 ## 快速开始
@@ -118,7 +118,7 @@ ai-pr-reviewer/
 - [x] 大 PR Diff 自动分块处理
 - [x] PR 评论回写（行级 inline comments）
 - [x] 导出 Markdown / HTML 报告
-- [x] 多模型切换（V4 Flash / V3 Pro）
+- [x] 多模型切换（V4 Flash / V4 Pro）
 - [x] 审查历史侧栏（恢复/清空）
 - [x] 深色/浅色主题切换 + UI 打磨
 

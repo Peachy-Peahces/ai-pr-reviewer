@@ -105,7 +105,7 @@ with col2:
     st.markdown("<br>", unsafe_allow_html=True)
     model_label = st.selectbox(
         "模型",
-        options=["DeepSeek V4 Flash (快速)", "DeepSeek V3 Pro (高精度)"],
+        options=["DeepSeek V4 Flash (快速)", "DeepSeek V4 Pro (高精度)"],
         index=0 if st.session_state.selected_model == "deepseek-v4-flash" else 1,
         label_visibility="collapsed",
     )

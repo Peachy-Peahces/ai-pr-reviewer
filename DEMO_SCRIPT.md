@@ -31,7 +31,7 @@ Code Review 是团队开发中很容易被忽略的一环——要么 reviewer �
 
 "来看看效果。前端用 Streamlit 构建，界面很简洁。
 
-输入 GitHub PR URL——我准备了一个真实的 PR。右上角可以**切换模型**，默认 DeepSeek V4 Flash 快速模式，也能切到 V3 Pro 高精度模式。
+输入 GitHub PR URL——我准备了一个真实的 PR。右上角可以**切换模型**，默认 DeepSeek V4 Flash 快速模式，也能切到 V4 Pro 高精度模式。
 
 点击「开始审查」——它会自动：获取 PR 信息 → 拉取 diff → 解析文件改动 → 发给 DeepSeek 做多维度审查。PR 比较大的时候，会按文件边界自动拆分成多批处理，避免超 Token。"
 
