@@ -6,6 +6,7 @@ Streamlit 前端 - AI PR Reviewer
 import sys
 import os
 import json
+from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import streamlit as st
@@ -29,13 +30,16 @@ if 'reviewed' not in st.session_state:
     st.session_state.reviewed = False
 if 'theme' not in st.session_state:
     st.session_state.theme = 'dark'
+if 'selected_model' not in st.session_state:
+    st.session_state.selected_model = "deepseek-v4-flash"
+if 'review_history' not in st.session_state:
+    st.session_state.review_history = []
 
 # ========== 主题 CSS 注入 ==========
 def inject_theme():
     t = st.session_state.theme
     bg = '#0e1117' if t == 'dark' else '#ffffff'
     bg2 = '#1c1f26' if t == 'dark' else '#f0f2f6'
-    text = '#e6e6e6' if t == 'dark' else '#262730'
     accent = '#4da3ff' if t == 'dark' else '#1f77d0'
     border = '#2e323b' if t == 'dark' else '#d0d5dd'
 
@@ -54,14 +58,15 @@ def inject_theme():
     .score-high {{ background: #2ea043; }}
     .score-mid {{ background: #d29922; }}
     .score-low {{ background: #f85149; }}
-    .theme-toggle {{
+    .model-chip {{
         display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 18px;
-        cursor: pointer;
-        border: 1px solid {border};
-        background: {bg2};
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        color: {accent};
+        background: {border};
+        margin: 0 4px;
     }}
     hr {{ border-color: {border}; }}
     .stExpander {{
@@ -87,7 +92,7 @@ st.divider()
 
 
 # ========== 输入区域 ==========
-col1, col2, col3 = st.columns([4, 1, 1])
+col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
 
 with col1:
     pr_url = st.text_input(
@@ -98,9 +103,21 @@ with col1:
 
 with col2:
     st.markdown("<br>", unsafe_allow_html=True)
-    review_btn = st.button("🚀 开始审查", type="primary", use_container_width=True)
+    model_label = st.selectbox(
+        "模型",
+        options=["DeepSeek V4 Flash (快速)", "DeepSeek V3 Pro (高精度)"],
+        index=0 if st.session_state.selected_model == "deepseek-v4-flash" else 1,
+        label_visibility="collapsed",
+    )
+    st.session_state.selected_model = (
+        "deepseek-v4-flash" if "Flash" in model_label else "deepseek-chat"
+    )
 
 with col3:
+    st.markdown("<br>", unsafe_allow_html=True)
+    review_btn = st.button("🚀 开始审查", type="primary", use_container_width=True)
+
+with col4:
     st.markdown("<br>", unsafe_allow_html=True)
     demo_btn = st.button("🧪 离线测试", use_container_width=True)
 
@@ -202,22 +219,22 @@ def _generate_mock_report(file_diffs, pr_info):
     )
 
 
-def run_review(diff_text, pr_info):
+def run_review(diff_text, pr_info, model="deepseek-v4-flash"):
     """执行审查（联网/离线共用）"""
     parser = DiffParser(diff_text)
     file_diffs = parser.parse()
-    
+
     if not file_diffs:
         st.error("❌ 未解析到任何文件改动")
         return False
-    
+
     st.session_state.diff_parser = parser  # 保存供后续行号定位使用
 
     reviewer = AIReviewer()
     old_stdout = sys.stdout
     try:
         sys.stdout = open(os.devnull, 'w')
-        report = reviewer.review(file_diffs, pr_info)
+        report = reviewer.review(file_diffs, pr_info, model=model)
         if getattr(reviewer, 'last_chunk_count', 1) > 1:
             st.info(f"📦 PR 较大，已自动拆分为 {reviewer.last_chunk_count} 批独立审查")
     except Exception as e:
@@ -227,6 +244,18 @@ def run_review(diff_text, pr_info):
         sys.stdout = old_stdout
     st.session_state.report = report
     st.session_state.reviewed = True
+
+    # 保存到审查历史
+    history_entry = {
+        "pr_url": pr_info.get("pr_url", "") if pr_info else "",
+        "title": pr_info.get("title", "离线测试") if pr_info else "离线测试",
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "model": model,
+        "score": report.overall_score,
+        "issues_count": len(report.issues),
+        "report_dict": report.to_dict(),
+    }
+    st.session_state.review_history.insert(0, history_entry)
     return True
 
 
@@ -246,7 +275,7 @@ if demo_btn:
         # AI 审查
         st.write("🤖 正在调用 DeepSeek API...")
         try:
-            success = run_review(SAMPLE_DIFF, SAMPLE_PR_INFO)
+            success = run_review(SAMPLE_DIFF, SAMPLE_PR_INFO, model=st.session_state.selected_model)
             if success:
                 st.success("✅ 审查完成！")
         except (ValueError, Exception) as e:
@@ -255,6 +284,16 @@ if demo_btn:
             st.session_state.report = mock_report
             st.session_state.reviewed = True
             st.success("✅ 离线 Mock 审查完成！")
+            # 保存到历史
+            st.session_state.review_history.insert(0, {
+                "pr_url": "",
+                "title": "离线测试 (Mock)",
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "model": st.session_state.selected_model,
+                "score": mock_report.overall_score,
+                "issues_count": len(mock_report.issues),
+                "report_dict": mock_report.to_dict(),
+            })
 
 elif review_btn and pr_url:
     # ====== 联网模式 ======
@@ -288,7 +327,8 @@ elif review_btn and pr_url:
                 st.write(f"Diff 长度: {len(diff_text)} 字符")
                 
                 st.write("🤖 正在调用 DeepSeek API...")
-                if run_review(diff_text, pr_info):
+                pr_info["pr_url"] = pr_url
+                if run_review(diff_text, pr_info, model=st.session_state.selected_model):
                     st.session_state.pr_url = pr_url
                     st.success("✅ 审查完成！")
                 
@@ -376,7 +416,7 @@ if st.session_state.reviewed and st.session_state.report:
     
     # 统计
     st.divider()
-    st.caption(f"共发现 {len(report.issues)} 个问题 | AI 模型: deepseek-v4-flash | Powered by DeepSeek")
+    st.caption(f"共发现 {len(report.issues)} 个问题 | AI 模型: {st.session_state.get('selected_model', 'deepseek-v4-flash')} | Powered by DeepSeek")
 
     # ====== 导出报告 ======
     st.subheader("📥 导出报告")
@@ -433,12 +473,50 @@ if st.session_state.reviewed and st.session_state.report:
 
 # ========== 侧栏 ==========
 with st.sidebar:
-    st.subheader("🎨 外观")
+    # 主题切换
     dark = st.session_state.theme == 'dark'
     if st.button(f"{'🌙 深色模式' if dark else '☀️ 浅色模式'}", key="toggle_theme", use_container_width=True):
         st.session_state.theme = 'light' if dark else 'dark'
         st.rerun()
-    st.caption("一键切换深色/浅色主题")
+
+    st.divider()
+    st.header("📋 审查历史")
+
+    if not st.session_state.review_history:
+        st.caption("暂无审查记录，去审查一个 PR 吧 🚀")
+    else:
+        for i, entry in enumerate(st.session_state.review_history):
+            score = entry.get("score", 0)
+            score_color = "🟢" if score >= 7 else ("🟠" if score >= 5 else "🔴")
+            model_label = "⚡Flash" if "flash" in entry.get("model", "") else "🎯Pro"
+
+            card_label = (
+                f"{score_color} **{score}/10** | {model_label} | "
+                f"*{entry.get('timestamp', '')}*  \n"
+                f"{entry.get('title', 'N/A')[:60]}"
+            )
+
+            if st.button(card_label, key=f"history_{i}", use_container_width=True):
+                from src.core.ai_reviewer import ReviewReport, ReviewIssue
+                rd = entry["report_dict"]
+                issues = [ReviewIssue(**iss) for iss in rd.get("issues", [])]
+                st.session_state.report = ReviewReport(
+                    summary=rd.get("summary", ""),
+                    overall_score=rd.get("overall_score", 5),
+                    issues=issues,
+                    strengths=rd.get("strengths", []),
+                    suggestions=rd.get("suggestions", []),
+                )
+                st.session_state.reviewed = True
+                st.session_state.selected_model = entry.get("model", "deepseek-v4-flash")
+                if entry.get("pr_url"):
+                    st.session_state.pr_url = entry["pr_url"]
+                st.rerun()
+
+        st.divider()
+        if st.button("🗑️ 清空历史", use_container_width=True):
+            st.session_state.review_history = []
+            st.rerun()
 
     st.divider()
     st.caption("Powered by DeepSeek | AI PR Reviewer v1.0")
