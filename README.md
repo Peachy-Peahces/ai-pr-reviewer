@@ -9,19 +9,22 @@
 
 ## ✨ 功能特性
 
-- 🔍 **智能代码审查**：基于 DeepSeek-V4 Flash 多维度分析 PR 代码变更
-- 📍 **行级精准定位**：审查问题精确标注到具体代码行，附上下文展示
-- 📝 **自定义审查规则**：支持 `.pr-reviewer.json` 配置文件，自定义启用的审查维度、忽略文件模式、添加自定义规则
-- 📦 **大 PR 自动分块**：Diff 超长时自动拆分批次送 AI，避免 Token 溢出
-- 📤 **一键发布到 PR**：审查结果直接以 GitHub Review 评论形式回写到 PR（含行级 inline comments）
-- 📄 **导出报告**：支持导出 Markdown / HTML 格式审查报告，方便离线查看与分享
+- 🔍 **智能代码审查**：基于 DeepSeek 多维度分析 PR 代码变更
+- ⚡🎯 **多模型切换**：支持 DeepSeek V4 Flash（快速）与 V3 Pro（高精度）一键切换
+- 📍 **行级精准定位**：问题精确标注到代码行，附上下文展示（▶ 标记目标行）
+- 📝 **自定义审查规则**：`.pr-reviewer.json` 自定义审查维度、忽略模式、自定义规则
+- 📦 **大 PR 自动分块**：Diff 超长时按文件边界自动拆分，结果智能合并去重
+- 📋 **审查历史**：侧栏展示历史记录，点击恢复任意一次审查结果
+- 🌙 **深色/浅色主题**：侧栏一键切换，CSS 实时注入无需刷新
+- 📤 **一键发布到 PR**：审查结果以 GitHub Review 形式回写（含行级 inline comments）
+- 📄 **导出报告**：支持 Markdown / HTML 格式，可直接打印 PDF
 - 🧪 **离线 Mock 模式**：无需 API 即可体验完整审查流程（适合演示）
 
 ## 技术栈
 
 - **后端**：Python + FastAPI
 - **前端**：Streamlit
-- **AI 模型**：DeepSeek-V4 Flash（轻量版，低成本高性能）
+- **AI 模型**：DeepSeek V4 Flash（默认）/ V3 Pro（高精度可切换）
 - **GitHub API**：requests（原生 REST API，支持代理）
 
 ## 快速开始
@@ -73,10 +76,11 @@ ai-pr-reviewer/
 ├── src/
 │   ├── api/          # FastAPI 后端（可选）
 │   ├── core/         # 核心逻辑
-│   │   ├── github_client.py   # GitHub REST API 封装（含代理/重试）
+│   │   ├── github_client.py   # GitHub REST API 封装（代理/重试）
 │   │   ├── diff_parser.py     # Diff 解析 + 行号标注
 │   │   ├── ai_reviewer.py    # AI 审查器（Prompt 工程 + API 调用）
-│   │   └── rule_config.py    # 审查规则配置加载器
+│   │   ├── rule_config.py    # 审查规则配置加载器
+│   │   └── export_report.py  # 报告导出（Markdown + HTML）
 │   ├── models/       # 数据模型（ReviewReport / ReviewIssue）
 │   └── ui/          # Streamlit 前端
 ├── tests/
@@ -105,17 +109,18 @@ ai-pr-reviewer/
 
 ## 开发进度
 
-- [x] 项目初始化
-- [x] GitHub API 对接（REST API + 代理 + 自动重试）
-- [x] Diff 解析与行号标注
-- [x] 大 PR Diff 自动分块
+- [x] 项目初始化 + GitHub API 对接（代理/重试）
+- [x] Diff 解析 + 行号标注
 - [x] DeepSeek API 调用 + Prompt 工程
+- [x] Streamlit Web 界面 + 离线 Mock 模式
+- [x] 行级精准定位（代码上下文 + ▶ 行标记）
 - [x] 自定义审查规则（.pr-reviewer.json）
-- [x] Streamlit Web 界面
-- [x] 离线 Mock 模式
+- [x] 大 PR Diff 自动分块处理
 - [x] PR 评论回写（行级 inline comments）
 - [x] 导出 Markdown / HTML 报告
-- [x] Demo 录制
+- [x] 多模型切换（V4 Flash / V3 Pro）
+- [x] 审查历史侧栏（恢复/清空）
+- [x] 深色/浅色主题切换 + UI 打磨
 
 ## 许可证
 
