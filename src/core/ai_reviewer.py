@@ -195,22 +195,24 @@ diff 中每行前面的数字（如 " 10: "）是新文件的行号。请在 iss
     
     CHUNK_CHAR_LIMIT = 8000  # 单批次最大字符数
 
-    def review(self, file_diffs: List, pr_info: Dict = None) -> ReviewReport:
+    def review(self, file_diffs: List, pr_info: Dict = None,
+               model: str = "deepseek-v4-flash") -> ReviewReport:
         """执行代码审查（主入口），大 PR 自动分批处理。"""
         total_chars = sum(len(fd.diff_content) for fd in file_diffs)
 
         if total_chars <= self.CHUNK_CHAR_LIMIT or len(file_diffs) <= 1:
             self.last_chunk_count = 1
-            return self._review_single(file_diffs, pr_info)
+            return self._review_single(file_diffs, pr_info, model)
 
         chunks = self._chunk_file_diffs(file_diffs)
         self.last_chunk_count = len(chunks)
-        return self._review_chunked(chunks, pr_info)
+        return self._review_chunked(chunks, pr_info, model)
 
-    def _review_single(self, file_diffs: List, pr_info: Dict = None) -> ReviewReport:
+    def _review_single(self, file_diffs: List, pr_info: Dict = None,
+                       model: str = "deepseek-v4-flash") -> ReviewReport:
         """单批次审查（原始流程）"""
         prompt = self.build_prompt(file_diffs, pr_info)
-        raw_response = self._call_api(prompt)
+        raw_response = self._call_api(prompt, model)
         return self._parse_response(raw_response)
 
     def _chunk_file_diffs(self, file_diffs: List, max_chars: int = None) -> List[List]:
@@ -233,13 +235,14 @@ diff 中每行前面的数字（如 " 10: "）是新文件的行号。请在 iss
             chunks.append(current)
         return chunks
 
-    def _review_chunked(self, chunks: List[List], pr_info: Dict = None) -> ReviewReport:
+    def _review_chunked(self, chunks: List[List], pr_info: Dict = None,
+                        model: str = "deepseek-v4-flash") -> ReviewReport:
         """分批调用 AI 审查，合并结果。"""
         reports = []
         for i, chunk in enumerate(chunks, 1):
             prompt = self.build_prompt(chunk, pr_info)
             prompt += f"\n\n[第 {i}/{len(chunks)} 批 — 请仅审查本批文件]"
-            raw = self._call_api(prompt)
+            raw = self._call_api(prompt, model)
             reports.append(self._parse_response(raw))
         return self._merge_reports(reports, pr_info)
 
