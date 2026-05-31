@@ -53,6 +53,10 @@ logs/
 .coverage
 htmlcov/
 
+# Project docs (local only)
+DEMO_SCRIPT.md
+CLAUDE.md
+
 # Streamlit
 .streamlit/
 

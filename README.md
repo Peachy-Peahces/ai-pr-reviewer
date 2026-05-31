@@ -7,6 +7,10 @@
 
 输入 GitHub PR URL，自动获取代码变更，通过 **DeepSeek-V4 Flash** 生成结构化 Review 建议（风险等级分类 + 行级定位 + 修改建议），并可一键发布审查结果到 GitHub PR。
 
+## 🎬 Demo 演示视频
+
+> 📺 **百度网盘**：[点击观看 demo 介绍视频](https://pan.baidu.com/s/1JKn1_iPdOx3hNBD-KZSzLg?pwd=bkv5) | 提取码：`bkv5`
+
 ## ✨ 功能特性
 
 - 🔍 **智能代码审查**：基于 DeepSeek 多维度分析 PR 代码变更
